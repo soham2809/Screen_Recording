@@ -7,58 +7,69 @@ let mediaRecorder;
 let recordedChunks = [];
 let combinedStream;
 
+function isMobile() {
+  return /Mobi|Android/i.test(navigator.userAgent);
+}
+
 async function setupStreams() {
-  try {
-    const screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: true
-    });
+  try {
+    let videoStream, audioStream;
 
-    const webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
+    if (!isMobile() && navigator.mediaDevices.getDisplayMedia) {
+      // Desktop screen recording
+      videoStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } else {
+      // Mobile fallback: camera + mic
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    }
 
-    webcamPreview.srcObject = webcamStream;
+    // Display webcam preview
+    webcamPreview.srcObject = videoStream;
 
-    // Combine screen video and webcam audio
-    const audioTrack = webcamStream.getAudioTracks()[0];
-    combinedStream = new MediaStream([
-      ...screenStream.getVideoTracks(),
-      audioTrack
-    ]);
+    // Combine video and audio tracks
+    const tracks = [
+      ...videoStream.getVideoTracks(),
+      ...(audioStream ? audioStream.getAudioTracks() : videoStream.getAudioTracks())
+    ];
+    combinedStream = new MediaStream(tracks);
 
-    mediaRecorder = new MediaRecorder(combinedStream, {
-      mimeType: 'video/webm; codecs=vp8,opus'
-    });
+    mediaRecorder = new MediaRecorder(combinedStream, {
+      mimeType: 'video/webm;codecs=vp8,opus'
+    });
 
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        recordedChunks.push(e.data);
-      }
-    };
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      downloadLink.href = url;
-    };
-  } catch (err) {
-    alert("Error: " + err.message);
-    console.error(err);
-  }
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadLink.style.display = 'inline';
+    };
+  } catch (err) {
+    alert("Error: " + err.message);
+    console.error(err);
+  }
 }
 
 startBtn.addEventListener('click', async () => {
-  await setupStreams();
-  recordedChunks = [];
-  mediaRecorder.start();
-  alert("Recording started.");
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  recordedChunks = [];
+  await setupStreams();
+  if (mediaRecorder) {
+    mediaRecorder.start();
+    alert("Recording started.");
+  }
 });
 
 stopBtn.addEventListener('click', () => {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-    alert("Recording stopped.");
-  }
+  stopBtn.disabled = true;
+  startBtn.disabled = false;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    alert("Recording stopped.");
+  }
 });
