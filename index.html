@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Screen Recorder</title>
+  <style>
+    #webcam-preview {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 160px;
+      height: 120px;
+      border: 2px solid #ccc;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <video id="webcam-preview" autoplay muted></video>
+
+  <div>
+    <button class="start-btn">Start Recording</button>
+    <button class="stop-btn">Stop Recording</button>
+    <a href="#" download="output.webm" class="download-anc">Download</a>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
